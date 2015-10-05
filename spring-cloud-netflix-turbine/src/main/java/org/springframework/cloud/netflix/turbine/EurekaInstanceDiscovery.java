@@ -49,10 +49,48 @@ public class EurekaInstanceDiscovery extends CommonsInstanceDiscovery {
 	private static final String EUREKA_DEFAULT_CLUSTER_NAME_EXPRESSION = "appName";
 
 	private final EurekaClient eurekaClient;
+	private final Expression clusterNameExpression;
+    private final boolean combineHostPort;
 
 	public EurekaInstanceDiscovery(TurbineProperties turbineProperties, EurekaClient eurekaClient) {
 		super(turbineProperties, EUREKA_DEFAULT_CLUSTER_NAME_EXPRESSION);
 		this.eurekaClient = eurekaClient;
+		SpelExpressionParser parser = new SpelExpressionParser();
+		this.clusterNameExpression = parser.parseExpression(turbineProperties
+				.getClusterNameExpression());
+        this.combineHostPort = turbineProperties.isCombineHostPort();
+	}
+
+	/**
+	 * Method that queries Eureka service for a list of configured application names
+	 * @return Collection<Instance>
+	 */
+	@Override
+	public Collection<Instance> getInstanceList() throws Exception {
+		List<Instance> instances = new ArrayList<>();
+		List<String> appNames = parseApps();
+		if (appNames == null || appNames.size() == 0) {
+			log.info("No apps configured, returning an empty instance list");
+			return instances;
+		}
+		log.info("Fetching instance list for apps: " + appNames);
+		for (String appName : appNames) {
+			try {
+				instances.addAll(getInstancesForApp(appName));
+			}
+			catch (Exception ex) {
+				log.error("Failed to fetch instances for app: " + appName
+						+ ", retrying once more", ex);
+				try {
+					instances.addAll(getInstancesForApp(appName));
+				}
+				catch (Exception retryException) {
+					log.error("Failed again to fetch instances for app: " + appName
+							+ ", giving up", ex);
+				}
+			}
+		}
+		return instances;
 	}
 
 	/**
@@ -98,10 +136,12 @@ public class EurekaInstanceDiscovery extends CommonsInstanceDiscovery {
 	 */
 	Instance marshall(InstanceInfo instanceInfo) {
 		String hostname = instanceInfo.getHostName();
+        String port = String.valueOf(instanceInfo.getPort());
 		String cluster = getClusterName(instanceInfo);
 		Boolean status = parseInstanceStatus(instanceInfo.getStatus());
 		if (hostname != null && cluster != null && status != null) {
-			Instance instance = new Instance(hostname, cluster, status);
+            String hostPart = combineHostPort ? hostname+":"+port+"/" : hostname;
+            Instance instance = new Instance(hostPart, cluster, status);
 
 			// add metadata
 			Map<String, String> metadata = instanceInfo.getMetadata();
@@ -121,7 +161,9 @@ public class EurekaInstanceDiscovery extends CommonsInstanceDiscovery {
 			}
 
 			// add ports
-			instance.getAttributes().put("port", String.valueOf(instanceInfo.getPort()));
+			if (!combineHostPort) {
+                instance.getAttributes().put("port", String.valueOf(instanceInfo.getPort()));
+            }
 			boolean securePortEnabled = instanceInfo.isPortEnabled(InstanceInfo.PortType.SECURE);
 			if (securePortEnabled) {
 				instance.getAttributes().put("securePort", String.valueOf(instanceInfo.getSecurePort()));
