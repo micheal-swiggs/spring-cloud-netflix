@@ -50,7 +50,7 @@ public class EurekaInstanceDiscovery extends CommonsInstanceDiscovery {
 
 	private final EurekaClient eurekaClient;
 	private final Expression clusterNameExpression;
-    private final boolean combineHostPort;
+	private final boolean combineHostPort;
 
 	public EurekaInstanceDiscovery(TurbineProperties turbineProperties, EurekaClient eurekaClient) {
 		super(turbineProperties, EUREKA_DEFAULT_CLUSTER_NAME_EXPRESSION);
@@ -58,7 +58,7 @@ public class EurekaInstanceDiscovery extends CommonsInstanceDiscovery {
 		SpelExpressionParser parser = new SpelExpressionParser();
 		this.clusterNameExpression = parser.parseExpression(turbineProperties
 				.getClusterNameExpression());
-        this.combineHostPort = turbineProperties.isCombineHostPort();
+		this.combineHostPort = turbineProperties.isCombineHostPort();
 	}
 
 	/**
@@ -136,14 +136,12 @@ public class EurekaInstanceDiscovery extends CommonsInstanceDiscovery {
 	 */
 	Instance marshall(InstanceInfo instanceInfo) {
 		String hostname = instanceInfo.getHostName();
-        String port = String.valueOf(instanceInfo.getPort());
+		String port = String.valueOf(instanceInfo.getPort());
 		String cluster = getClusterName(instanceInfo);
 		Boolean status = parseInstanceStatus(instanceInfo.getStatus());
 		if (hostname != null && cluster != null && status != null) {
-            String hostPart = combineHostPort ? hostname+":"+port+"/" : hostname;
-            Instance instance = new Instance(hostPart, cluster, status);
-
-			// add metadata
+			String hostPart = combineHostPort ? hostname+":"+port+"/" : hostname;
+			Instance instance = new Instance(hostPart, cluster, status);
 			Map<String, String> metadata = instanceInfo.getMetadata();
 			if (metadata != null) {
 				instance.getAttributes().putAll(metadata);
@@ -154,7 +152,6 @@ public class EurekaInstanceDiscovery extends CommonsInstanceDiscovery {
 			if (asgName != null) {
 				instance.getAttributes().put("asg", asgName);
 			}
-
 			DataCenterInfo dcInfo = instanceInfo.getDataCenterInfo();
 			if (dcInfo != null && dcInfo.getName().equals(DataCenterInfo.Name.Amazon)) {
 				AmazonInfo amznInfo = (AmazonInfo) dcInfo;
