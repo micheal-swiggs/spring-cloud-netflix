@@ -154,6 +154,7 @@ public class EurekaInstanceDiscovery extends CommonsInstanceDiscovery {
 			if (asgName != null) {
 				instance.getAttributes().put("asg", asgName);
 			}
+
 			DataCenterInfo dcInfo = instanceInfo.getDataCenterInfo();
 			if (dcInfo != null && dcInfo.getName().equals(DataCenterInfo.Name.Amazon)) {
 				AmazonInfo amznInfo = (AmazonInfo) dcInfo;
