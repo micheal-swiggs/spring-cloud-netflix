@@ -47,5 +47,4 @@ public class TurbineProperties {
 		}
 		return null;
 	}
-
 }
